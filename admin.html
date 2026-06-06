@@ -471,7 +471,6 @@
             if (mediaBox) {
                 if (mediaList && Array.isArray(mediaList) && mediaList.length > 0) {
                     var mediaHtml = '';
-                    var mediaHtml = '';
                     mediaList.forEach(function(mediaItem, mIdx) {
                         var statusHtml = '';
                         if (mediaItem.status === 'approved') {
@@ -483,8 +482,8 @@
                         var actionsHtml = '';
                         if (!mediaItem.status || mediaItem.status === 'pending') {
                             actionsHtml = '<div style="display:flex; gap:10px; margin-top:10px;">' +
-                                '<button onclick="verifyMedia(' + mIdx + ', \\'approved\\')" style="flex:1; padding:6px; background:#5cb85c; color:white; border:none; border-radius:4px; font-weight:bold; cursor:pointer; font-size:12px;">Approve</button>' +
-                                '<button onclick="verifyMedia(' + mIdx + ', \\'declined\\')" style="flex:1; padding:6px; background:#d9534f; color:white; border:none; border-radius:4px; font-weight:bold; cursor:pointer; font-size:12px;">Decline</button>' +
+                                '<button onclick="verifyMedia(' + mIdx + ', \'approved\')" style="flex:1; padding:6px; background:#5cb85c; color:white; border:none; border-radius:4px; font-weight:bold; cursor:pointer; font-size:12px;">Approve</button>' +
+                                '<button onclick="verifyMedia(' + mIdx + ', \'declined\')" style="flex:1; padding:6px; background:#d9534f; color:white; border:none; border-radius:4px; font-weight:bold; cursor:pointer; font-size:12px;">Decline</button>' +
                                 '</div>';
                         }
                         
